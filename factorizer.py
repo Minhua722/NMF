@@ -45,7 +45,7 @@ def initial_WH(W_rows, W_cols, H_rows, H_cols):
 		(W, H):	The output matrix
 	"""
 
-	W = np.random.rand(W_rows, W_cols) * 255 + 1e-20
+	W = np.random.rand(W_rows, W_cols) + 1e-20
 	H = np.random.rand(H_rows, H_cols) + 1e-20
 
 	return (W, H)
@@ -78,7 +78,7 @@ def visualize(W):
 		img[img>255] = 255
 		img = img.astype(np.uint8)
 
-		print img.dtype
+		# print img.dtype
 		# print "--------------------\n", W[:, i]
 		# time.sleep(20)
 
