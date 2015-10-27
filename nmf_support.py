@@ -5,7 +5,7 @@ import numpy as np
 import math 
 
 # import time
-# import sys 
+import sys 
 
 def get_V(dir_name):
 	"""
@@ -105,8 +105,12 @@ def visualize(W, height, width, path):
 	#----------------------------------------------------------------
 	for i in range(num_basis):
 		img = W[:, i]
+		if img.min() < 0: # this if clause is added when visualize eigenfaces
+			img = img - img.min()
+		
 		img = img * 255 / img.max()
 		img[img>255] = 255
+		# img[img<0] = 0
 		img = 255 - img.astype(np.uint8).reshape((height, width))
 
 		cv2.imwrite(path + str(i) + '.pgm', img)
@@ -124,17 +128,24 @@ def visualize(W, height, width, path):
 		pad_d = ch * cw - num_basis
 	assert ch * cw >= num_basis
 
+	# print cw, ch, pad_d
+	# print 'num_basis', num_basis
+
 	concat_rows = []
 	for i in range(ch-1):
 		concat_r = reduce(lambda m1, m2: np.hstack((m1, m2)), imgs[i*cw : (i+1)*cw])
-
+		# print concat_r.shape
 		concat_rows.append(concat_r)
 	
 	concat_r = reduce(lambda m1, m2: np.hstack((m1, m2)), imgs[(ch-1)*cw :])
 
 	if pad_d != 0:
-		concat_r = np.pad(concat_r, ((0, 0), (0, pad_d)), mode='constant')
+		concat_r = np.pad(concat_r, ((0, 0), (0, pad_d*width)), mode='constant')
+		# print 'last: ', concat_r.shape
+		# print pad_d
 	concat_rows.append(concat_r)
+
+	# sys.exit(0)
 
 	concat_basis = reduce(lambda m1, m2: np.vstack((m1, m2)), concat_rows)
 	cv2.imwrite(path + "basis_imgs.pgm", concat_basis)
