@@ -45,10 +45,10 @@ if __name__ == '__main__':
 	parser.add_argument('--num_basis', '-n', 
 						action='store', type=int, default=36, 
 						help='number of basis')
-	parser.add_argument('--H_saprseness', '-H', 
+	parser.add_argument('--H_sparseness' '-H', 
 						action='store', type=float, default=0.5,
 						help='sparseness applied on H (default: 0.5)')
-	parser.add_argument('--W_saprseness', '-W', 
+	parser.add_argument('--W_sparseness', '-W', 
 						action='store', type=float, default=0.5,
 						help='sparseness applied on W (default: 0.5)')
 	parser.add_argument('--input_path', '-in', 
