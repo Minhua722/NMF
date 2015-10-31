@@ -28,7 +28,7 @@ import math
 
 from nmf_support import *
 
-import sys 
+import sys, os 
 
 
 if __name__ == '__main__': 
@@ -59,6 +59,14 @@ if __name__ == '__main__':
 	
 	# args = parser.parse_args('-in ../../cbcl_faces/train/face -out output -i 1000 -n 36 -m 0'.split())
 	args = parser.parse_args()
+
+	if not os.path.exists(args.input_path):
+		print "[ERROR] " + args.input_path + "does not exit!!"
+		sys.exit(0)
+
+	if not os.path.exists(args.output_path):
+		print "Create output directory " + args.output_path
+		os.makedirs(args.output_path)
 
 	# Initialize V
 	V, img_height, img_width = get_V(args.input_path)

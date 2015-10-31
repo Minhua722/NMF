@@ -9,7 +9,7 @@
 # 						NO SUB-DIRECTORIES !!!
 # 						
 # --output_path, -out:	output path (required)
-# 						Please make sure the directory exists !!!
+# 						It will create the directory if not exists.
 # 						
 # --num_basis, -n:		number of eigenfaces (Optional, default is 16)
 # 						
@@ -17,6 +17,7 @@
 import numpy as np 
 from sklearn.decomposition import PCA
 import argparse
+import os, sys
 
 from nmf_support import *
 
@@ -33,13 +34,27 @@ if __name__ == '__main__':
 						action='store', type=str, required=True, 
 						help='path to output directory')
 		
-	# args = parser.parse_args('-in ../../cbcl_faces/train/face -out output/eigenfaces -n 49'.split())
+	# args = parser.parse_args('-in ../../cbcl_faces/train/face -out output/test -n 64'.split())
 	args = parser.parse_args()
+	
+	if not os.path.exists(args.input_path):
+		print "[ERROR] " + args.input_path + "does not exit!!"
+		sys.exit(0)
+
+	if not os.path.exists(args.output_path):
+		print "Create output directory " + args.output_path
+		os.makedirs(args.output_path)
 
 	V, img_height, img_width = get_V(args.input_path)
 
 
-	pca = PCA(n_components=args.num_basis)
+	num_basis = args.num_basis
+	# if num_basis > V.shape[1]:
+	# 	print "Warning: number of eigenfaces cannot be larger than the number of input faces."
+	# 	print "Set num_basis = ", V.shape[1]
+	# 	num_basis = V.shape[1]
+
+	pca = PCA(n_components=num_basis)
 	
 	pca.fit(V.T) # each column corresponding to a face
 
