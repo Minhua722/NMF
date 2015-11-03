@@ -2,16 +2,18 @@
 
 import cv2
 import numpy as np
-import math 
+from numpy import linalg as LA
+import math
 
-# import time
+import Cprojection
+
 import sys 
 
 def get_V(dir_name):
 	"""
 	Read images in a directory (non-recursively) in to a matrix V. 
 	Each column of V represents a image.
-	
+
 	Parameters:
 		dir_name:	directory name 
 	Returns:
@@ -19,24 +21,25 @@ def get_V(dir_name):
 		h, w:	height and width of each image in the dataset. This
 				information is useful when doing visualization
 	"""
-	
+
 	import glob
 	if dir_name[-1] != '/':
 		dir_name = dir_name + '/'
-		
+
 	paths = glob.glob(dir_name + '*.pgm')
 
 	V_cols = len(paths)
 	h, w = cv2.imread(paths[0], 0).shape
 	V_rows = h * w
-	
+
 	V = np.empty((V_rows, V_cols), dtype=float)
 
 	for i in range(len(paths)):
 		img = cv2.imread(paths[i], 0)
 		V[:, i] = cv2.imread(paths[i], 0).flatten()
-	
+
 	return (V, h, w)
+
 
 def initial_WH(W_rows, W_cols, H_rows, H_cols):
 	"""
@@ -51,6 +54,9 @@ def initial_WH(W_rows, W_cols, H_rows, H_cols):
 
 	W = np.random.rand(W_rows, W_cols) + 1e-20
 	H = np.random.rand(H_rows, H_cols) + 1e-20
+	# initialize each row of H to have unit energy
+	H_norm = np.sqrt((H*H).sum(axis=1))
+	H = H / H_norm.reshape(H.shape[0], 1)
 
 	return (W, H)
 
@@ -81,6 +87,114 @@ def train_multiplicative(V, W, H, iternum=2000):
 	return (W, H)
 
 
+
+def train(V, W, H, W_sparse=0.5, H_sparse=0.5, iternum=1000):
+	"""
+	NMF with sparseness constraint on W
+
+	Parameters:
+		V, W, H: 	input matrices
+		W_sparse: 	sparseness constraint on W
+		mu_W: 		learning rate for W
+		iternum: 	number of iterations
+	Returns:
+		(W, H):	The output matrices
+
+	"""
+
+	dim = W.shape[0]
+	num_basis = W.shape[1]
+
+	# if sparseness contraint on W, project each col of W to be nneg, unchanged L2
+	if W_sparse != -1:
+		assert(W_sparse >= 0 and W_sparse <= 1)
+		project_matrix_col(W, W_sparse, 'unchanged')
+		print "project each col of W to be nneg with unchanged L2 norm"
+	if H_sparse != -1:
+		assert(H_sparse <= 0 and H_sparse <= 1)
+		project_matrix_row(H, H_sparse, 'unit')
+		print "project each row of H to be nneg with unit L2 norm"
+
+	muW = 1.0
+	muH = 1.0
+
+	for i in range(iternum):
+		print "iteration %d" % i
+
+		# update W
+		if W_sparse != -1:
+			print "update W"
+			old_error = obj_error(V, W, H)
+			while(1):
+				
+				newW = W - muW * (np.dot(W, H) - V).dot(H.T)
+				project_matrix_col(newW, W_sparse, 'unchanged')
+				new_error = obj_error(V, newW, H)
+
+				if new_error <= old_error:
+					print "new error %f" % new_error
+					break
+
+				muW /= 2
+				print "half muW to %f" % muW
+				if muW < 1e-10:
+					print "Algorithm converged"
+					return (W, H)
+
+			muW *= 1.2
+			W = newW
+		else:
+			print "update W"
+			W = W * np.dot(V, H.T) / W.dot(H).dot(H.T)
+			print "new error %f" % obj_error(V, W, H)
+
+		# update H
+		if H_sparse != -1:
+			print "update H"
+			old_error = obj_error(V, W, H)
+			while(1):
+				newH = H - muH * np.dot(W.T, (np.dot(W, H) - V))
+				project_matrix_row(newH, H_sparse, 'unit')
+				new_error = obj_error(V, W, newH)
+
+				if new_error <= old_error:
+					print "new error %f" % new_error
+					break
+
+				muH /= 2
+				print "half muH to %f" % muH
+				if muH < 1e-10:
+					print "Algorithm converged"
+					return (W, H)
+
+			muH *= 1.2
+			H = newH
+		else:
+			print "update H"
+			H = H * np.dot(W.T, V) / np.dot(W.T, W).dot(H)
+
+			# normalize each row of H and scale W correspondingly
+			H_norm = np.sqrt((H*H).sum(axis=1))
+			H = H / H_norm.reshape(H.shape[0], 1)
+			W = W * H_norm.reshape(1, H.shape[0])
+			print "new error %f" % obj_error(V, W, H)
+
+	return (W, H)
+
+
+def obj_error(V, W, H):
+	"""
+	Compute approximation mean square error between V and W*H.
+
+	Parameters:
+		V, W, H:    input matrices
+		error:      average approximation error
+	"""
+
+	error = ((V-np.dot(W, H)) * (V-np.dot(W, H))).sum() / (V.shape[0] * V.shape[1])
+	return error
+
+
 def visualize(W, height, width, path):
 	"""
 	Visualize matrix W: store each column as a basis image
@@ -107,7 +221,7 @@ def visualize(W, height, width, path):
 		img = W[:, i]
 		if img.min() < 0: # this if clause is added when visualize eigenfaces
 			img = img - img.min()
-		
+
 		img = img * 255 / img.max()
 		img[img>255] = 255
 		# img[img<0] = 0
@@ -136,7 +250,7 @@ def visualize(W, height, width, path):
 		concat_r = reduce(lambda m1, m2: np.hstack((m1, m2)), imgs[i*cw : (i+1)*cw])
 		# print concat_r.shape
 		concat_rows.append(concat_r)
-	
+
 	concat_r = reduce(lambda m1, m2: np.hstack((m1, m2)), imgs[(ch-1)*cw :])
 
 	if pad_d != 0:
@@ -151,3 +265,89 @@ def visualize(W, height, width, path):
 	cv2.imwrite(path + "basis_imgs.pgm", concat_basis)
 
 	return (imgs, concat_basis)
+
+
+def sparseness(x):
+	"""
+	Compute sparseness of a vector
+
+	Parameters:	
+		x: input vector
+	Returns:	
+		sparseness
+	"""
+
+	dim = len(x)
+	L1 = LA.norm(x, 1)
+	L2 = LA.norm(x, 2)
+	sparseness = (math.sqrt(dim) - L1 / L2) / (math.sqrt(dim) - 1)
+
+	return sparseness
+
+
+def L1_for_sparseness(D, L2, sparseness):
+	"""
+	For a vector with dim D, find qualified L1 norm 
+	given L2 norm and desired sparseness
+	sparseness = (sqrt(n) - L1/L2) / (sqrt(n)-1)
+	input args: D -- dimension
+				L2 -- specified L2 norm
+				sparseness - specified sparseness
+	output args: L1 -- qualified L1 norm
+	"""
+
+	L1 = (math.sqrt(D) - sparseness * (math.sqrt(D) - 1)) * L2;
+	return L1
+
+
+def project_matrix_col(M, sparse, L2='unchanged'):
+	"""
+	Project each column of a Matrix. With unchanged/unit L2 norm,
+	and L1 norm set to achieve desired sparseness
+
+	Parameters:
+		M: 			input matrix
+		sparse: 	specified sparseness of each column for projection
+		L2: 	indicate whether we want unchanged or unit L2 norm
+	"""
+
+	assert(L2 == 'unchanged' or L2 == 'unit')
+	dim = M.shape[0]
+	COL = M.shape[1]
+	for c in range(COL):
+		if L2 == 'unchanged':
+			target_L2 = LA.norm(M[:, c], 2)
+		else:
+			target_L2 = 1
+		target_L1 = L1_for_sparseness(dim, target_L2, sparse)
+		M[:, c] = Cprojection.project_nneg(M[:, c], target_L1, target_L2, False).flatten()
+
+	for c in range(COL):
+		assert(abs(sparseness(M[:, c]) - sparse) < 0.1)
+
+
+def project_matrix_row(M, sparse, L2='unit'):
+	"""
+	Project each row of a Matrix. With unchanged/unit L2 norm,
+	and L1 norm set to achieve desired sparseness
+
+	Parameters:
+		M: 			input matrix
+		sparse: 	specified sparseness of each column for projection
+		L2: 	indicate whether we want unchanged or unit L2 norm
+	"""
+
+	assert(L2 == 'unchanged' or L2 == 'unit')
+	dim = M.shape[1]
+	ROW = M.shape[0]
+	for r in range(ROW):
+		if L2 == 'unchanged':
+			target_L2 = LA.norm(M[r, :], 2)
+		else:
+			target_L2 = 1
+		target_L1 = L1_for_sparseness(dim, target_L2, sparse)
+		M[r, :] = Cprojection.project_nneg(M[r, :], target_L1, target_L2, False).flatten()
+
+	for r in range(ROW):
+		assert(abs(sparseness(M[r, :]) - sparse) < 0.1)
+
