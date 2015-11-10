@@ -40,7 +40,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Do NMF with sparseness constraint.')
 	parser.add_argument('--num_basis', '-n', 
 						action='store', type=int, default=36, 
-						help='number of basis')
+						help='number of basis, default=36')
 	parser.add_argument('--W_sparseness', '-W', 
 						action='store', type=float, default=-1,
 						help='sparseness (0~1) applied on W (default: -1 for no constraint)')
@@ -54,8 +54,8 @@ if __name__ == '__main__':
 						action='store', type=str, required=True, 
 						help='path to output directory')
 	parser.add_argument('--num_iterations', '-i', 
-						action='store', type=int, default=2000, 
-						help='number of iterations. (default: 2000)')
+						action='store', type=int, default=1000, 
+						help='number of iterations. (default: 1000)')
 	
 	# args = parser.parse_args('-in ../../cbcl_faces/train/face -out output -i 1000 -n 36 -m 0'.split())
 	args = parser.parse_args()

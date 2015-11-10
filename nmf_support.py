@@ -57,7 +57,6 @@ def initial_WH(W_rows, W_cols, H_rows, H_cols):
 	# initialize each row of H to have unit energy
 	H_norm = np.sqrt((H*H).sum(axis=1))
 	H = H / H_norm.reshape(H.shape[0], 1)
-
 	return (W, H)
 
 
@@ -104,19 +103,19 @@ def train(V, W, H, W_sparse=0.5, H_sparse=0.5, iternum=1000):
 
 	dim = W.shape[0]
 	num_basis = W.shape[1]
-
+	
 	# if sparseness contraint on W, project each col of W to be nneg, unchanged L2
 	if W_sparse != -1:
 		assert(W_sparse >= 0 and W_sparse <= 1)
-		project_matrix_col(W, W_sparse, 'unchanged')
 		print "project each col of W to be nneg with unchanged L2 norm"
+		project_matrix_col(W, W_sparse, 'unchanged')
 	if H_sparse != -1:
-		assert(H_sparse <= 0 and H_sparse <= 1)
-		project_matrix_row(H, H_sparse, 'unit')
+		assert(H_sparse >= 0 and H_sparse <= 1)
 		print "project each row of H to be nneg with unit L2 norm"
+		project_matrix_row(H, H_sparse, 'unit')
 
 	muW = 1.0
-	muH = 1.0
+	muH = 0.00001
 
 	for i in range(iternum):
 		print "iteration %d" % i
