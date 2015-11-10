@@ -22,12 +22,28 @@ def get_V(dir_name):
 				information is useful when doing visualization
 	"""
 
-	import glob
-	if dir_name[-1] != '/':
-		dir_name = dir_name + '/'
+	# import glob
+	# if dir_name[-1] != '/':
+	# 	dir_name = dir_name + '/'
 
-	paths = glob.glob(dir_name + '*.pgm')
+	# paths = glob.glob(dir_name + '*.pgm')
+	
+	import os
 
+	paths = []
+	for dirname, subdirs, filenames in os.walk(dir_name):
+		
+		if len(subdirs) != 0:
+			continue
+
+		for fname in filenames:
+			_, ext = fname.split('.')
+			if ext in ['jpg', 'png', 'pgm']:
+				paths.append(dirname + '/' + fname)
+
+	# print len(paths)
+	# print paths
+	
 	V_cols = len(paths)
 	h, w = cv2.imread(paths[0], 0).shape
 	V_rows = h * w
@@ -37,6 +53,10 @@ def get_V(dir_name):
 	for i in range(len(paths)):
 		img = cv2.imread(paths[i], 0)
 		V[:, i] = cv2.imread(paths[i], 0).flatten()
+
+
+	# print V.shape
+	# sys.exit(0)
 
 	return (V, h, w)
 
@@ -111,6 +131,7 @@ def train(V, W, H, W_sparse=0.5, H_sparse=0.5, iternum=1000):
 		project_matrix_col(W, W_sparse, 'unchanged')
 	if H_sparse != -1:
 		assert(H_sparse >= 0 and H_sparse <= 1)
+		project_matrix_row(H, H_sparse, 'unit')
 		print "project each row of H to be nneg with unit L2 norm"
 		project_matrix_row(H, H_sparse, 'unit')
 
