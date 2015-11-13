@@ -38,9 +38,12 @@ def project_nneg(x, L1, L2, verbose=True):
 		mid += L1 / (dim - len(zero_idx));
 		mid[zero_idx] = 0
 		w = s - mid
-		a = np.sum(w**2);
-		b = 2 * np.dot(w.reshape(dim,), s.reshape(dim,));
-		c = np.sum(s**2) - pow(L2, 2);
+		a_raw = np.sum(w**2);
+		b_raw = 2 * np.dot(w.reshape(dim,), s.reshape(dim,));
+		c_raw = np.sum(s**2) - pow(L2, 2);
+		a = a_raw/a_raw
+		b = b_raw/a_raw
+		c = c_raw/a_raw
 		delta = pow(b, 2) - 4 * a * c;
 		assert(delta >= 0)
 		alpha = (-b + math.sqrt(delta)) / (2 * a);
@@ -48,6 +51,7 @@ def project_nneg(x, L1, L2, verbose=True):
 		iter += 1
 
 		if np.array(np.where(s<0)).size == 0:
+			#print abs(LA.norm(s, 1) - L1), abs(LA.norm(s, 2) - L2)
 			assert(abs(LA.norm(s, 1) - L1) <= 0.5 and abs(LA.norm(s, 2) - L2) <= 0.5)
 			if verbose == True:
 				print "Projection finished:\n final_L1: %f, final_L2: %f" \

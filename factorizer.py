@@ -40,13 +40,19 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Do NMF with sparseness constraint.')
 	parser.add_argument('--num_basis', '-n', 
 						action='store', type=int, default=36, 
-						help='number of basis')
+						help='number of basis, default=36')
 	parser.add_argument('--W_sparseness', '-W', 
 						action='store', type=float, default=-1,
 						help='sparseness (0~1) applied on W (default: -1 for no constraint)')
 	parser.add_argument('--H_sparseness', '-H', 
 						action='store', type=float, default=-1,
 						help='sparseness (0~1) applied on H (default: -1 for no constraint)')
+	parser.add_argument('--mu_W', '-mW', 
+						action='store', type=float, default=0.01,
+						help='learining rate for W (default: 0.01 only used under constraint)')
+	parser.add_argument('--mu_H', '-mH', 
+						action='store', type=float, default=0.01,
+						help='learining rate for H (default: 0.01 only used under constraint)')
 	parser.add_argument('--input_path', '-in', 
 						action='store', type=str, required=True, 
 						help='path to dataset directory')
@@ -54,8 +60,8 @@ if __name__ == '__main__':
 						action='store', type=str, required=True, 
 						help='path to output directory')
 	parser.add_argument('--num_iterations', '-i', 
-						action='store', type=int, default=2000, 
-						help='number of iterations. (default: 2000)')
+						action='store', type=int, default=1000, 
+						help='number of iterations. (default: 1000)')
 	
 	# args = parser.parse_args('-in ../../cbcl_faces/train/face -out output -i 1000 -n 36 -m 0'.split())
 	args = parser.parse_args()
@@ -77,7 +83,7 @@ if __name__ == '__main__':
 	W, H = initial_WH(W_rows, W_cols, H_rows, H_cols)
 
 	# NMF with/without sparse constraint 
-	newW, newH = train(V, W, H, args.W_sparseness, args.H_sparseness, args.num_iterations)
+	newW, newH = train(V, W, H, args.W_sparseness, args.H_sparseness, args.mu_W, args.mu_H, args.num_iterations)
 
 	imgs, concat_basis = visualize(newW, img_height, img_width, args.output_path)
 	
