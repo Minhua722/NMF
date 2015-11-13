@@ -47,6 +47,12 @@ if __name__ == '__main__':
 	parser.add_argument('--H_sparseness', '-H', 
 						action='store', type=float, default=-1,
 						help='sparseness (0~1) applied on H (default: -1 for no constraint)')
+	parser.add_argument('--mu_W', '-mW', 
+						action='store', type=float, default=0.01,
+						help='learining rate for W (default: 0.01 only used under constraint)')
+	parser.add_argument('--mu_H', '-mH', 
+						action='store', type=float, default=0.01,
+						help='learining rate for H (default: 0.01 only used under constraint)')
 	parser.add_argument('--input_path', '-in', 
 						action='store', type=str, required=True, 
 						help='path to dataset directory')
@@ -77,7 +83,7 @@ if __name__ == '__main__':
 	W, H = initial_WH(W_rows, W_cols, H_rows, H_cols)
 
 	# NMF with/without sparse constraint 
-	newW, newH = train(V, W, H, args.W_sparseness, args.H_sparseness, args.num_iterations)
+	newW, newH = train(V, W, H, args.W_sparseness, args.H_sparseness, args.mu_W, args.mu_H, args.num_iterations)
 
 	imgs, concat_basis = visualize(newW, img_height, img_width, args.output_path)
 	

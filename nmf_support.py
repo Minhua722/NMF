@@ -107,7 +107,7 @@ def train_multiplicative(V, W, H, iternum=2000):
 
 
 
-def train(V, W, H, W_sparse=0.5, H_sparse=0.5, iternum=1000):
+def train(V, W, H, W_sparse=0.5, H_sparse=0.5, muW=0.01, muH=0.01, iternum=1000):
 	"""
 	NMF with sparseness constraint on W
 
@@ -134,9 +134,6 @@ def train(V, W, H, W_sparse=0.5, H_sparse=0.5, iternum=1000):
 		project_matrix_row(H, H_sparse, 'unit')
 		print "project each row of H to be nneg with unit L2 norm"
 		project_matrix_row(H, H_sparse, 'unit')
-
-	muW = 1.0
-	muH = 0.00001
 
 	for i in range(iternum):
 		print "iteration %d" % i
@@ -174,6 +171,8 @@ def train(V, W, H, W_sparse=0.5, H_sparse=0.5, iternum=1000):
 			old_error = obj_error(V, W, H)
 			while(1):
 				newH = H - muH * np.dot(W.T, (np.dot(W, H) - V))
+				newH_norm = np.sqrt((newH*newH).sum(axis=1))
+				newH = newH / newH_norm.reshape(H.shape[0], 1)
 				project_matrix_row(newH, H_sparse, 'unit')
 				new_error = obj_error(V, W, newH)
 
@@ -369,5 +368,6 @@ def project_matrix_row(M, sparse, L2='unit'):
 		M[r, :] = Cprojection.project_nneg(M[r, :], target_L1, target_L2, False).flatten()
 
 	for r in range(ROW):
+		 
 		assert(abs(sparseness(M[r, :]) - sparse) < 0.1)
 

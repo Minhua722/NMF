@@ -51,6 +51,7 @@ def project_nneg(x, L1, L2, verbose=True):
 		iter += 1
 
 		if np.array(np.where(s<0)).size == 0:
+			#print abs(LA.norm(s, 1) - L1), abs(LA.norm(s, 2) - L2)
 			assert(abs(LA.norm(s, 1) - L1) <= 0.5 and abs(LA.norm(s, 2) - L2) <= 0.5)
 			if verbose == True:
 				print "Projection finished:\n final_L1: %f, final_L2: %f" \
