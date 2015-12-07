@@ -41,14 +41,16 @@ def load_data(**kwargs):
             if ext in ['jpg', 'png', 'pgm', 'bmp']: 
                 gender, person_idx, img_idx = img_name.split('-')
                 # Choose training images
-                if int(img_idx) in range(kwargs['num_training']+1):
+                if int(img_idx) in range(1, kwargs['num_training']+1) \
+                    or (int(img_idx)-13) in range(1, kwargs['num_training']+1):
                     # Choose man/woman
                     if (gender == 'M' and int(person_idx) in range(kwargs['num_M']+1)) \
                        or (gender == 'W' and int(person_idx) in range(kwargs['num_W']+1)):
                         paths.append(dirname + '/' + fname)
                         labels.append(dirname.split('/')[-1])
                         # Choose whether labled
-                        if int(img_idx) in range(kwargs['num_spvs']+1):
+                        if int(img_idx) in range(1, kwargs['num_spvs']+1) \
+                            or (int(img_idx)-13) in range(1, kwargs['num_spvs']+1):
                             spvs.append(True)
                         else:
                             spvs.append(False)
@@ -64,9 +66,10 @@ def load_data(**kwargs):
     filelist = zip(paths, label_idx, spvs)
     filelist_labeled = filter(lambda x: x[2], filelist)
     filelist_unlabeled = filter(lambda x: not x[2], filelist)
-
+   
     # for i in xrange(len(paths)):
-    #     print paths[i], labels[i], label_idx[i], spvs[i]
+    #     print filelist[i]
+    # sys.exit(0)
     # print filelist_labeled, '\n'
     # print filelist_unlabeled
    
@@ -92,7 +95,8 @@ def load_data(**kwargs):
 
     # scale each column in X to 0~255
     X = X / X.max(axis=0) * 255
-
+    # print A
+    # print X
     return (X, A, (h, w))
 
 
@@ -158,7 +162,6 @@ if __name__ == '__main__':
     parser.add_argument('--alg_id', action='store', type=str,
                         default='cnmf',
                         help='algorithm id')
-
 
     # parser.add_argument('--mask', dest='mask', action='store_true',
     #                     help='Set if use a elipse.')
