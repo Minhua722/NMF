@@ -7,7 +7,7 @@ AR="/Users/minhuawu/Documents/JHU/computer_vision/project/database/ar_cropped_da
 num_M=$1
 num_W=$2
 num_bases=$3
-exp_dir=exp_M${num_M}_W${num_W}_B${num_bases}_tst
+exp_dir=exp_M${num_M}_W${num_W}_B${num_bases}
 data_dir=$exp_dir/data
 
 # Prepare train and test set
