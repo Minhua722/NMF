@@ -18,7 +18,7 @@ if __name__ == '__main__':
 	# Args parser
 	#------------------------------------------------------
 
-	parser = argparse.ArgumentParser(description='Extract PCA coefficients for each image')
+	parser = argparse.ArgumentParser(description='Extract CNMF coefficients for each image')
 	parser.add_argument('--bases_dir', '-base', 
 			action='store', type=str, required=True, 
 			help='directory of bases (eigen vectors)')
@@ -34,6 +34,7 @@ if __name__ == '__main__':
 	data_dir = args.input_dir.strip('/')
 	train_list = "%s/train.list" % data_dir
 	if not os.path.isfile(train_list):
+		print "%s not exist!" % train_list
 		sys.exit(1)
 
 	test_sets = []
@@ -43,37 +44,29 @@ if __name__ == '__main__':
 	bases_dir = "%s/%s/bases" % (args.bases_dir.strip('/'), args.exp_id)
 	bases_pname = "%s/bases.pickle" % bases_dir
 	if not os.path.isfile(bases_pname):
+		print "%s not exist!" % bases_pname
 		sys.exit(1)
 
-	mask_pname = "%s/mask.pickle" % data_dir
-	
 	feats_dir = "%s/%s" % (args.input_dir, args.exp_id)
+	if not os.path.exists(feats_dir):
+		os.makedirs(feats_dir)
 
 	with open(bases_pname, "rb") as f:
 		W = pickle.load(f) # each col of W is a basis
 	D = W.shape[1] # num of bases (feature dimension)
 	print "%d NMF bases loaded from %s" % (D, bases_pname)
 
-	with open(mask_pname, "rb") as f:
-		mask = pickle.load(f)
-	print "elliptical mask loaded from %s" % mask_pname
 
 	##########################################################################
 	# Extract training data features
 	# load img in each col of V
 	V_raw, img_height, img_width, train_labels = load_data(train_list)
-	V = apply_mask(V_raw, img_height, img_width, mask)
-	assert(V.shape[0] == np.where(mask==255)[0].size)
+	V = normalize_data(V_raw)
 	train_label_pname = "%s/train_label.pickle" % data_dir
 	with open(train_label_pname, "wb") as f:
 		pickle.dump(train_labels, f)
 	N = V.shape[1]
 
-	#train_coefs_pname = "%s/coefs.pickle" % bases_dir
-	#with open(train_coefs_pname, "rb") as f:
-	#	H = pickle.load(f)
-	#print H.shape
-	#assert(H.shape[0] == D and H.shape[1] == N)
 
 	# mean and variance normailization for each row
 	train_feats = np.transpose(np.dot(V.T, W))
@@ -86,7 +79,7 @@ if __name__ == '__main__':
 		pickle.dump(train_feats, f)
 	#print np.mean(train_feats, axis=0)
 	#print np.std(train_feats, axis=0)
-	print "train set nmf feats stored in %s" % train_feats_pname
+	print "train set cnmf feats stored in %s" % train_feats_pname
 
 	############################################################################
 	# Extract test data features
@@ -96,15 +89,14 @@ if __name__ == '__main__':
 		print "Process %s" % test_list
 		# load img in each col of V
 		V_raw, img_height, img_width, test_labels = load_data(test_list)
-		V = apply_mask(V_raw, img_height, img_width, mask)
-		assert(V.shape[0] == np.where(mask==255)[0].size)
+		V = normalize_data(V_raw)
 		test_label_pname = "%s/%s_label.pickle" % (data_dir, set_name)
 		with open(test_label_pname, "wb") as f:
 			pickle.dump(test_labels, f)
 		N = V.shape[1]
 		print "%d test images of size %dx%d loaded" % (N, img_height, img_width)
 
-		test_feats = np.transpose(np.dot(V.T, W)) # each col is nmf feats for one image
+		test_feats = np.transpose(np.dot(V.T, W)) # each col is cnmf feats for one image
 		assert(test_feats.shape[0] == D and test_feats.shape[1] == N)
 
 		# mean and variance normailization for each col

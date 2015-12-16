@@ -64,18 +64,7 @@ if __name__ == '__main__':
 	V_raw, img_height, img_width, train_labels = load_data(train_list)
 	print "%d training images of size %dx%d loaded" % (V_raw.shape[1], img_height, img_width)
 
-	# extract an elliptical region of each image
-	# create the mask
-	mask = np.zeros((img_height, img_width))
-	cv2.ellipse(mask, center=(img_width/2, img_height/2), \
-			axes=(img_width/2,img_height/2+10), \
-			angle=0, startAngle=0, endAngle=360, color=255, thickness=-1)
-	#mask = np.ones((img_height, img_width))*255
-	mask_pname = "%s/mask.pickle" % data_dir
-	with open(mask_pname, "wb") as f:
-		pickle.dump(mask, f)
-
-	V = apply_mask(V_raw, img_height, img_width, mask)
+	V = normalize_data(V_raw)
 
 	W_rows, H_cols = V.shape
 	H_rows = W_cols = args.num_basis
@@ -87,7 +76,7 @@ if __name__ == '__main__':
 	newW, newH = train(V, W, H, args.W_sparseness, args.H_sparseness, \
 			args.mu_W, args.mu_H, args.num_iterations)
 
-	_, _ = visualize_with_mask(newW, img_height, img_width, bases_dir, mask)
+	_, _ = visualize(newW, img_height, img_width, bases_dir)
 	bases_pname = "%s/bases.pickle" % bases_dir
 	with open(bases_pname, "wb") as f:
 		pickle.dump(newW, f)

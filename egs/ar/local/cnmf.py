@@ -3,11 +3,11 @@
 import argparse
 import os
 import sys
-sys.path.append('../src/')
 import pickle
 import numpy as np
 import cv2
-from nmf_support import visualize
+from nmf_support import *
+import Cprojection
 
 def load_data(**kwargs):
     """
@@ -112,15 +112,43 @@ def train(A, X, **kwargs):
     num_pixels, num_data = X.shape
     A_h, A_w = A.shape
     assert A_h == num_data
+    sparse = kwargs['sparse']
+    mu = kwargs['mu']    
 
     Z = np.random.rand(A_w, kwargs['num_basis']) + 1e-3 # random positive initialize
     U = np.random.rand(num_pixels, kwargs['num_basis']) + 1e-3
 
+    if sparse != -1:
+        print "project each col of U to be nneg with unchanged L2 norm"
+        project_matrix_col(U, sparse, 'unchanged')
+    
     for i in xrange(kwargs['num_iters']):
-        # update U
-        U_numerator = X.dot(A).dot(Z)
-        U_denominator = U.dot(Z.T).dot(A.T).dot(A).dot(Z)
-        U = U * (U_numerator / U_denominator)
+        if (sparse == -1):
+            # update U
+            U_numerator = X.dot(A).dot(Z)
+            U_denominator = U.dot(Z.T).dot(A.T).dot(A).dot(Z)
+            U = U * (U_numerator / U_denominator)
+        else:
+            H = np.dot(Z.T, A.T)
+            old_error = obj_error(X, U, H)
+            while(1):
+                newU = U - mu * (np.dot(U, H) - X).dot(H.T)
+                project_matrix_col(newU, sparse, 'unchanged')
+                new_error = obj_error(X, newU, H)
+
+                if new_error <= old_error:
+                    #print "new error %f" % new_error
+                    break
+
+                mu /= 2
+                #print "half muW to %f" % muW
+                if mu < 1e-10:
+                    print "Algorithm converged"
+                    return (U, A, Z)
+
+            mu *= 1.2
+            U = newU
+
         # update Z
         Z_numerator = A.T.dot(X.T).dot(U)
         Z_denominator = A.T.dot(A).dot(Z).dot(U.T).dot(U)
@@ -162,8 +190,13 @@ if __name__ == '__main__':
     parser.add_argument('--alg_id', action='store', type=str,
                         default='cnmf',
                         help='algorithm id')
-
-    # parser.add_argument('--mask', dest='mask', action='store_true',
+    parser.add_argument('--basis_sparse', '-sp', action='store', type=float,
+                        default=-1,
+                        help='sparseness of the basis (-1 for no sparseness constraint)')
+    parser.add_argument('--mu_basis', '-mu', action='store', type=float,
+                        default=0.01,
+                        help='learning rate (only used under sparseness constraint)') 
+	# parser.add_argument('--mask', dest='mask', action='store_true',
     #                     help='Set if use a elipse.')
     # parser.set_defaults(mask=False)
                         
@@ -178,10 +211,10 @@ if __name__ == '__main__':
                                 num_spvs=args.num_spvs)
 
     # train
-    U, A, Z = train(A, X, num_basis=args.num_basis, num_iters=args.num_iters)
+    U, A, Z = train(A, X, num_basis=args.num_basis, num_iters=args.num_iters, mu=args.mu_basis, sparse=args.basis_sparse)
     
     # visualize
-    output_dir = args.out_dir + '/' + args.alg_id + '/base'
+    output_dir = args.out_dir + '/' + args.alg_id + '/bases'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     img, concat_basis = visualize(U, img_shape[0], img_shape[1], output_dir, revert=True) 
@@ -189,8 +222,8 @@ if __name__ == '__main__':
     # cv2.imshow('basis', concat_basis)
     # cv2.waitKey(0)
    
-    pickle.dump(U, open(output_dir + '/bases.pickel', 'wb'))
-    pickle.dump(A, open(output_dir + '/constraints.pickel', 'wb'))
-    pickle.dump(Z, open(output_dir + '/auxiliary.pickel', 'wb'))
+    pickle.dump(U, open(output_dir + '/bases.pickle', 'wb'))
+    pickle.dump(A, open(output_dir + '/constraints.pickle', 'wb'))
+    pickle.dump(Z, open(output_dir + '/auxiliary.pickle', 'wb'))
 
 

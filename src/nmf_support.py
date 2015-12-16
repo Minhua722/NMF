@@ -84,6 +84,7 @@ def load_data(listfile):
 			P = h*w # total number of pixels in each image
 			V = np.empty((P, 0), dtype=np.float)
 		raw_img = cv2.imread(items[0], 0)
+		#raw_img = cv2.equalizeHist(raw_img)
 		V = np.append(V, raw_img.reshape(P, 1), axis=1)
 
 	fin.close()
@@ -112,6 +113,26 @@ def apply_mask(V_raw, height, width, mask):
 		V_new = np.append(V_new, region_img.reshape(P, 1), axis=1)	
 
 	return V_new
+
+
+def normalize_data(V_raw):
+	"""
+	Normalize each image (one col of V) within range 0~255
+
+	V_raw: matrix for input images
+	return V_new: matrix for normalized images
+	"""
+	
+	P = V_raw.shape[0]
+	N = V_raw.shape[1]
+	V_new = np.empty((P, 0), dtype=np.float)
+	for n in range(N):
+		raw_img = V_raw[:,n]
+		norm_img = raw_img / np.max(raw_img) * 255
+		V_new = np.append(V_new, norm_img.reshape(P, 1), axis=1)
+	
+	return V_new
+		
 
 def initial_WH(W_rows, W_cols, H_rows, H_cols):
 	"""

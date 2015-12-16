@@ -50,21 +50,8 @@ if __name__ == '__main__':
 	assert(V_raw.shape[1] == N)
 	print "%d training images of size %dx%d loaded" % (N, img_height, img_width)
 	
-	# extract an elliptical region of each image
-	# create the mask
-	mask = np.zeros((img_height, img_width))
-	cv2.ellipse(mask, center=(img_width/2, img_height/2), \
-		axes=(img_width/2,img_height/2+10), \
-		angle=0, startAngle=0, endAngle=360, color=255, thickness=-1)
-	#mask = np.ones((img_height, img_width))*255
-	mask_pname = "%s/mask.pickle" % data_dir
-	with open(mask_pname, "wb") as f:
-		pickle.dump(mask, f)
-
-	V = apply_mask(V_raw, img_height, img_width, mask)
+	V = normalize_data(V_raw)
 	P = V.shape[0]
-	assert(np.where(mask==255)[0].size == P)
-	print "Elliptical mask applied on each image"
 
 	v_bar = np.mean(V, axis=1).reshape(P, 1)
 	V = V - v_bar
@@ -72,13 +59,10 @@ if __name__ == '__main__':
 	pca.fit(V.T)
 	v_bar = v_bar.astype(np.uint8).reshape(P,)
 	mean_face_fname = "%s/mean_face.pgm" % bases_dir
-	mean_face = np.zeros((img_height, img_width))
-	r_coords, c_coords = np.where(mask == 255)
-	mean_face[r_coords, c_coords] = v_bar
-	cv2.imwrite(mean_face_fname, mean_face)
+	cv2.imwrite(mean_face_fname, v_bar.reshape(img_height, img_width))
 	# visualize eigen faces
 	W = pca.components_.T
-	_, _ = visualize_with_mask(W, img_height, img_width, bases_dir, mask)
+	_, _ = visualize(W, img_height, img_width, bases_dir)
 
 	pca_bases_pname = "%s/pca_bases.pickle" % bases_dir
 	with open(pca_bases_pname, "wb") as f:

@@ -18,7 +18,7 @@ if __name__ == '__main__':
 	# Args parser
 	#------------------------------------------------------
 
-	parser = argparse.ArgumentParser(description='Face recognition based on PCA feats')
+	parser = argparse.ArgumentParser(description='Face recognition based on CNMF feats')
 	parser.add_argument('--input_dir', '-in', 
 			action='store', type=str, required=True, 
 			help='data dir with nmf feats and labels')
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 			test_feat = test_feats[:, t].reshape(D, 1)
 			ref = test_label[test_count]
 
-			#scores = np.apply_along_axis(np.linalg.norm, 0, train_nmf_feats - test_feat)
+			#scores = np.apply_along_axis(np.linalg.norm, 0, train_feats - test_feat)
 			#hypo = train_label[np.argmin(scores)]
 			# NCC
 			hypo =train_label[np.argmax(np.dot(test_feat.T, train_feats))]
